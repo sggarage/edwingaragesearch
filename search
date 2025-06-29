@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edwin Garage - Part Price Checker</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f8f9fa; }
+    input, button { padding: 0.75rem; font-size: 1rem; width: 100%; margin-top: 1rem; }
+    #results { margin-top: 2rem; }
+    .result { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h2>🛠️ Edwin Garage Part Price Checker</h2>
+  <p>Type something like: <i>WBA8E radiator and coolant tank</i></p>
+
+  <input id="queryInput" placeholder="Enter chassis number and part(s)..." />
+  <button onclick="searchParts()">Search</button>
+
+  <div id="results"></div>
+
+  <script>
+    async function searchParts() {
+      const input = document.getElementById('queryInput').value.toLowerCase();
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '⏳ Searching...';
+
+      // Extract chassis and parts
+      const chassisMatch = input.match(/(wba\w{3,})/i);
+      if (!chassisMatch) return resultsDiv.innerHTML = '<p class="error">❌ Please include a valid chassis number (e.g. WBA8E...)</p>';
+      const chassis = chassisMatch[1];
+
+      // Try to extract multiple parts (naive split)
+      const parts = input.replace(chassis, '').split(/,|and|&/i).map(p => p.trim()).filter(p => p);
+      if (!parts.length) return resultsDiv.innerHTML = '<p class="error">❌ Please include at least one part to search.</p>';
+
+      const results = [];
+      for (const part of parts) {
+        const res = await fetch(`https://script.google.com/macros/s/AKfycbw69foWGm674dZ8DTWak-dL_kbDlbQ3LgWjTCi59F4/dev?chassis=${chassis}&part=${part}`);
+        const data = await res.json();
+        if (data.length > 0) {
+          data.forEach(d => {
+            results.push(`<div class="result">✅ <b>${d.part}</b><br/>OEM: ${d.partNumber}<br/>Price: $${d.sell}<br/>Brand: ${d.brand}<br/>Supplier: ${d.supplier}</div>`);
+          });
+        } else {
+          results.push(`<div class="result">❌ <b>${part}</b> not found for ${chassis}</div>`);
+        }
+      }
+
+      resultsDiv.innerHTML = results.join('');
+    }
+  </script>
+</body>
+</html>
